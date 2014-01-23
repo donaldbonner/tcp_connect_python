@@ -1,0 +1,9 @@
+#!/usr/bin/env python
+import socket
+
+""" Get local inet_ip address """
+def get_inet_ip():
+	return socket.gethostbyname(socket.gethostname())
+
+
+print get_inet_ip()
