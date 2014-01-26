@@ -1,9 +1,59 @@
 #!/usr/bin/env python
 import socket
+import sys
+
+host = None
+port = 9999
+s = None
+hostname = ""
+data = None
+clientName = None
 
 """ Get local inet_ip address """
 def get_inet_ip():
 	return socket.gethostbyname(socket.gethostname())
 
-
-print get_inet_ip()
+print "This machines IP address is " + get_inet_ip()
+hostname = raw_input("Enter a username : ")
+""" Don't believe I need this """
+"""
+port = raw_input("Enter a port to connect to: ")
+while True:
+	try:
+		int(port)
+	except ValueError:
+		port = raw_input("Enter a port number (integer): ")
+		continue
+	else:
+		break
+"""
+""" http://docs.python.org/2.7/library/socket.html """
+for res in socket.getaddrinfo(host, port, socket.AF_UNSPEC,
+                              socket.SOCK_STREAM, 0, socket.AI_PASSIVE):
+    af, socktype, proto, canonname, sa = res
+    try:
+        s = socket.socket(af, socktype, proto)
+    except socket.error as msg:
+        s = None
+        continue
+    try:
+        s.bind(sa)
+        s.listen(1)
+    except socket.error as msg:
+        s.close()
+        s = None
+        continue
+    break
+while port > 9990:
+    if s is None:
+        port = port - 1
+        print 'could not open socket, trying port ' + port
+    else : break
+conn, addr = s.accept()
+print 'Connected by', addr
+while 1:
+    clientName = conn.recv(1024)
+    if not clientName: break
+    print 'Client name : ', repr(clientName)
+    conn.send(hostname)
+conn.close()
