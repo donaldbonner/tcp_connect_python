@@ -12,7 +12,7 @@ clientName = ""
 """ Get local inet_ip address """
 def getInetIP():
     try:
-	socket.gethostbyname(socket.gethostname())
+        socket.gethostbyname(socket.gethostname())
     except socket.error as msg:
         print "Not connected to the interwebs"
         sys.exit(1)
@@ -39,12 +39,33 @@ def listen_to(host, port):
         break
     if s is None:
         print 'could not open connection'
-        conn = None
-        addr = None
-        return conn, addr
+        return -1
     conn, addr = s.accept()
     return conn, addr
 """ returns socket s that is connected to port at ip_connect """
+def thread_connect(ip_connect, port):
+    time.sleep(.2)
+    for res in socket.getaddrinfo(ip_connect, port, socket.AF_UNSPEC, socket.SOCK_STREAM):
+        af, socktype, proto, canonname, sa = res
+        try:
+            sc = socket.socket(af, socktype, proto)
+        except socket.error as msg:
+            sc = None
+            continue
+        try:
+            sc.connect(sa)
+        except socket.error as msg:
+            sc.close()
+            sc = None
+            continue
+        break
+    if sc is None:
+        print 'could not open connection'
+        sys.exit(1)
+    print 'child connected to', ip_connect
+    sc.sendall('thread worked')
+    sc.close()
+    sys.exit(1)
 
 def main():
     port = 9999
@@ -53,8 +74,8 @@ def main():
     print "This machines IP address is " + getInetIP()
     hostname = raw_input("Enter a username : ")
     conn, addr = listen_to(None, port)
-    while port > 9000:
-        if conn == None or addr == None:
+    while True:
+        if conn == -1 or addr == -1:
             print 'port', port, 'busy, trying', port - 1
             port =- 1
             conn, addr = listen_to(None, port)  
@@ -66,18 +87,15 @@ def main():
     print 'Connected to', clientName
     print 'To exit chat, type', repr('.logout') 
     conn.send(hostname) 
-
+    f = conn.makefile()
+    """
+    p = Process(target=thread_connect, args=(addr[0], port-1))
+    p.start()
+    """
     while 1:
-        data = conn.recv(1024)
-        if not data: 
-            print 'connection with ' + clientName + ' closed'
-            break
-        print clientName + ':' + data
-        toSend = raw_input('>')
-        if toSend == ".logout": break
-        conn.sendall(toSend)
+        print f.readline()
     conn.close()
+    """p.join()"""
 
 if __name__ == "__main__":
     main()
-    

@@ -28,7 +28,10 @@ def connect_to(ip_connect, port):
     if s is None:
         print 'could not open connection'
         return None
-    return s  
+    return s   
+""" returns the connection socket and the address connected to (conn, addr) """
+def thread_listen(host, port):
+    print 'thread_listen'    
 
 def main():
     port = 9999
@@ -50,19 +53,25 @@ def main():
 
     s.sendall(hostname)
     clientName = s.recv(1024)
-  
+    
+    """
+    p = Process(target=thread_listen, args=(None, port-1))
+    p.start()
+    """
+    f = s.makefile() 
     subprocess.call(["clear"])
     print 'Connected to', clientName
     print 'To exit chat, type', repr('.logout') 
 
     toSend = None
     while 1:
-        toSend = raw_input('>')
+        toSend =  raw_input('>')
         if toSend == ".logout": break
-        s.sendall(toSend)
-        print clientName, ":", s.recv(1024)
+        f.write(toSend)
+        f.flush()
     s.close()
     print 'connection with ' + clientName + ' closed'
+    """p.join()"""
 
 if __name__ == "__main__":
     main()
