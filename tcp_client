@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 import socket
+import time
 import sys
 import subprocess
-from multiprocessing import process
+from multiprocessing import Process
 
-s = None
-port = 9999
-hostname = ""
+global clientName
+clientName = ""
 
 """ http://docs.python.org/2.7/library/socket.html """
 """ returns socket s that is connected to port at ip_connect """
@@ -27,49 +27,72 @@ def connect_to(ip_connect, port):
         break
     if s is None:
         print 'could not open connection'
-        sys.exit(1)
+        return None
     return s   
 """ returns the connection socket and the address connected to (conn, addr) """
-def child_listen_to(host, port):
+def thread_listen(host, port):
+    time.sleep(.1)
     for res in socket.getaddrinfo(host, port, socket.AF_UNSPEC,
                                   socket.SOCK_STREAM, 0, socket.AI_PASSIVE):
         af, socktype, proto, canonname, sa = res
         try:
-            s = socket.socket(af, socktype, proto)
+            sc = socket.socket(af, socktype, proto)
         except socket.error as msg:
-            s = None
+            sc = None
             continue
         try:
-            s.bind(sa)
-            s.listen(1)
+            sc.bind(sa)
+            sc.listen(1)
         except socket.error as msg:
-            s.close()
-            s = None
+            sc.close()
+            sc = None
             continue
         break
-    if s is None:
+    if sc is None:
         print 'could not open connection'
+        sc.close()
         sys.exit(1)
-    conn, addr = s.accept()
-    return conn, addr
+    chconn, addr = sc.accept()
+    print chconn.recv(1024)
+    chconn.close()
+    sys.exit(1)
 
-""" set up parameters needed """
-hostname = raw_input("Enter a username : ")
-"""ip_connect = "192.168.0.106"""
-ip_connect = raw_input("Enter IP to connect to: ")
-"""print "Connecting to " + ip_connect"""
+def main():
+    port = 9999
+    """ set up parameters needed """
+    hostname = raw_input("Enter a username : ")
+    """ip_connect = "192.168.0.106"""
+    ip_connect = raw_input("Enter IP to connect to: ")
+    """print "Connecting to " + ip_connect"""   
 
-""" make the connection """
-s = connect_to(ip_connect, port)
-s.sendall(hostname)
-clientName = s.recv(1024)
-subprocess.call(["clear"])
-print 'Connected to', clientName
-print 'To exit chat, type', repr('.logout')
+    """ make the connection on unused port"""
+    s = connect_to(ip_connect, port)
+    while True:
+        if s is None:
+            print 'port', port, 'busy, trying', port - 1
+            port =- 1
+            s = connect_to(ip_connect, port)  
+        else:
+            break
 
-toSend = None
-while 1:
-    toSend = raw_input('>')
-    if toSend == ".logout": break
-    s.sendall(toSend)
-s.close()
+    s.sendall(hostname)
+    clientName = s.recv(1024)
+    
+    p = Process(target=thread_listen, args=(None, port-1))
+    p.start()
+    
+    subprocess.call(["clear"])
+    print 'Connected to', clientName
+    print 'To exit chat, type', repr('.logout') 
+
+    toSend = None
+    while 1:
+        toSend = raw_input('>')
+        if toSend == ".logout": break
+        s.sendall(toSend)
+    s.close()
+    print 'connection with ' + clientName + ' closed'
+    p.join()
+
+if __name__ == "__main__":
+    main()

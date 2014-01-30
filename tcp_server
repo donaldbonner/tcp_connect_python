@@ -1,27 +1,13 @@
 #!/usr/bin/env python
 import socket
+import time
 import sys
 import subprocess
+from multiprocessing import Process
 
-host = None
-port = 9999
-s = None
-hostname = ""
-data = None
-clientName = None
-
-""" make sure port is not used """
-"""
-def isPortUsed(port):
-    curr = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    result = curr.connect_ex(('127.0.0.1', port))
-    if result != 0 :
-        print 'port ' + str(port) + ' is in use' 
-        curr.close()
-        return -1
-    curr.close()
-    return port
-"""
+global clientName
+global s
+clientName = ""
 
 """ Get local inet_ip address """
 def getInetIP():
@@ -33,27 +19,6 @@ def getInetIP():
     return socket.gethostbyname(socket.gethostname())
 
 """ http://docs.python.org/2.7/library/socket.html """
-""" returns socket s that is connected to port at ip_connect """
-def child_connect_to(ip_connect, port):
-    for res in socket.getaddrinfo(ip_connect, port, socket.AF_UNSPEC, socket.SOCK_STREAM):
-        af, socktype, proto, canonname, sa = res
-        try:
-            s = socket.socket(af, socktype, proto)
-        except socket.error as msg:
-            s = None
-            continue
-        try:
-            s.connect(sa)
-        except socket.error as msg:
-            s.close()
-            s = None
-            continue
-        break
-    if s is None:
-        print 'could not open connection'
-        sys.exit(1)
-    print 'child connected to', ip_connect
-    return s
 """ returns the connection socket and the address connected to (conn, addr) """
 def listen_to(host, port):
     for res in socket.getaddrinfo(host, port, socket.AF_UNSPEC,
@@ -74,32 +39,67 @@ def listen_to(host, port):
         break
     if s is None:
         print 'could not open connection'
-        sys.exit(1)
+        return -1
     conn, addr = s.accept()
     return conn, addr
-
-""" set up informatino and give host ip address """
-print "This machines IP address is " + getInetIP()
-hostname = raw_input("Enter a username : ")
-conn, addr = listen_to(None, port)
-
-"""print 'Connected by', str(addr)"""
-"""
-while 1:
-    clientName = conn.recv(1024)
-    if not clientName: break
-    print 'Client name : ', repr(clientName)
-    conn.send(hostname)
-"""
-clientName = conn.recv(1024)
-subprocess.call(["clear"])
-print 'Connected to', clientName
-conn.send(hostname)
-
-while 1:
-    data = conn.recv(1024)
-    if not data: 
-        print 'connection with ' + clientName + ' closed'
+""" returns socket s that is connected to port at ip_connect """
+def thread_connect(ip_connect, port):
+    time.sleep(.2)
+    for res in socket.getaddrinfo(ip_connect, port, socket.AF_UNSPEC, socket.SOCK_STREAM):
+        af, socktype, proto, canonname, sa = res
+        try:
+            sc = socket.socket(af, socktype, proto)
+        except socket.error as msg:
+            sc = None
+            continue
+        try:
+            sc.connect(sa)
+        except socket.error as msg:
+            sc.close()
+            sc = None
+            continue
         break
-    print clientName + ':' + data
-conn.close()
+    if sc is None:
+        print 'could not open connection'
+        sys.exit(1)
+    print 'child connected to', ip_connect
+    sc.sendall('thread worked')
+    sc.close()
+    sys.exit(1)
+
+def main():
+    port = 9999
+    """ set up informatino and give host ip address """
+    """ make sure port isnt used """
+    print "This machines IP address is " + getInetIP()
+    hostname = raw_input("Enter a username : ")
+    conn, addr = listen_to(None, port)
+    while True:
+        if conn == -1 or addr == -1:
+            print 'port', port, 'busy, trying', port - 1
+            port =- 1
+            conn, addr = listen_to(None, port)  
+        else:
+            break
+
+    clientName = conn.recv(1024)
+    subprocess.call(["clear"])
+    print 'Connected to', clientName
+    print 'To exit chat, type', repr('.logout') 
+    conn.send(hostname) 
+    
+    p = Process(target=thread_connect, args=(addr[0], port-1))
+    p.start()
+    
+    while 1:
+        data = conn.recv(1024)
+        if not data: 
+            print 'connection with ' + clientName + ' closed'
+            break
+        print clientName + ':' + data
+    conn.close()
+    p.join()
+
+if __name__ == "__main__":
+    main()
+    
