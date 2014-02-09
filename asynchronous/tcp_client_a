@@ -1,12 +1,9 @@
 #!/usr/bin/env python
-import socket
-import time
-import sys
-import subprocess
+import signal, os, socket, time, sys, subprocess, readline, struct, fcntl, termios, thread
 from multiprocessing import Process
 
-global clientName
-clientName = ""
+global toSend
+toSend = ""
 
 """ http://docs.python.org/2.7/library/socket.html """
 """ returns socket s that is connected to port at ip_connect """
@@ -29,49 +26,74 @@ def connect_to(ip_connect, port):
         print 'could not open connection'
         return None
     return s   
+
 """ returns the connection socket and the address connected to (conn, addr) """
-def thread_listen(host, port):
-    print 'thread_listen'    
+def threadPrint(sock, clientName, pid):
+    while True:
+        data = sock.recv(1024)
+        if not data: 
+            break
+        blank_current_readline()
+        print clientName + ':' + data
+        sys.stdout.write('>' + readline.get_line_buffer())
+        sys.stdout.flush()          # Needed or text doesn't show until a key is pressed
+    os.kill(pid ,signal.SIGINT)
+    sys.exit(0)
+
+""" http://stackoverflow.com/questions/2082387/reading-input-from-raw-input-without-having-the-prompt-overwritten-by-other-th """
+def blank_current_readline():
+    # Next line said to be reasonably portable for various Unixes
+    (rows,cols) = struct.unpack('hh', fcntl.ioctl(sys.stdout, termios.TIOCGWINSZ,'1234'))
+
+    text_len = len(readline.get_line_buffer())+2
+
+    # ANSI escape sequences (All VT100 except ESC[0G)
+    sys.stdout.write('\x1b[2K')                         # Clear current line
+    sys.stdout.write('\x1b[1A\x1b[2K'*(text_len/cols))  # Move cursor up and clear line
+    sys.stdout.write('\x1b[0G')                         # Move to start of line
 
 def main():
-    port = 9999
     """ set up parameters needed """
+    port = 9999
     hostname = raw_input("Enter a username : ")
-    """ip_connect = "192.168.0.106"""
     ip_connect = raw_input("Enter IP to connect to: ")
-    """print "Connecting to " + ip_connect"""   
 
     """ make the connection on unused port"""
     s = connect_to(ip_connect, port)
     while True:
         if s is None:
-            print 'port', port, 'busy, trying', port - 1
             port =- 1
+            print 'port', port, 'busy, trying', port
             s = connect_to(ip_connect, port)  
         else:
             break
 
     s.sendall(hostname)
     clientName = s.recv(1024)
-    
-    """
-    p = Process(target=thread_listen, args=(None, port-1))
-    p.start()
-    """
-    f = s.makefile() 
+
+    readline.clear_history()
+    thread.start_new_thread(threadPrint, (s, clientName, os.getpid(), ))
+
     subprocess.call(["clear"])
     print 'Connected to', clientName
     print 'To exit chat, type', repr('.logout') 
 
     toSend = None
     while 1:
-        toSend =  raw_input('>')
-        if toSend == ".logout": break
-        f.write(toSend)
-        f.flush()
+        try:
+            toSend = raw_input('>')
+            if toSend == ".logout": 
+                blank_current_readline()
+                print 'connection with ' + clientName + ' closed'
+                break
+            s.sendall(toSend)
+        except (KeyboardInterrupt, SystemExit):
+            blank_current_readline()
+            print 'connection with ' + clientName + ' closed'
+            s.close()
+            sys.exit(1)
     s.close()
-    print 'connection with ' + clientName + ' closed'
-    """p.join()"""
+    sys.exit(0)
 
 if __name__ == "__main__":
     main()
