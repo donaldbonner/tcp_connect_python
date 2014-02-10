@@ -2,11 +2,17 @@
 import signal, os, socket, time, sys, subprocess, readline, struct, fcntl, termios, thread
 from multiprocessing import Process
 
+global toSend
+toSend = "Fail"
+
 """ Get local inet_ip address """
 def getInetIP():
     try:
         socket.gethostbyname(socket.gethostname())
     except socket.error as msg:
+        print "Not connected to the interwebs"
+        sys.exit(1)
+    if socket.gethostbyname(socket.gethostname()) == '127.0.0.1':
         print "Not connected to the interwebs"
         sys.exit(1)
     return socket.gethostbyname(socket.gethostname())
@@ -42,9 +48,14 @@ def threadPrint(sock, clientName, pid):
         if not data: 
             break
         blank_current_readline()
-        print clientName, ":", data
-        sys.stdout.write('>' + readline.get_line_buffer())
-        sys.stdout.flush()          # Needed or text doesn't show until a key is pressed
+        if readline.get_line_buffer == toSend or readline.get_line_buffer() == toSend + '\n':
+            print clientName + ':' + data
+            sys.stdout.write('>')
+            sys.stdout.flush()
+        else:
+            print clientName + ':' + data
+            sys.stdout.write('>' + readline.get_line_buffer())
+            sys.stdout.flush()          # Needed or text doesn't show until a key is pressed
     os.kill(pid,signal.SIGINT)
     sys.exit(0)
 
@@ -60,12 +71,17 @@ def blank_current_readline():
     sys.stdout.write('\x1b[1A\x1b[2K'*(text_len/cols))  # Move cursor up and clear line
     sys.stdout.write('\x1b[0G')                         # Move to start of line
 
+def setToSend(value):
+    global toSend
+    toSend = value
+
 def main():
     port = 9999
     """ set up informatino and give host ip address """
     """ make sure port isnt used """
     print "This machines IP address is " + getInetIP()
     hostname = raw_input("Enter a username : ")
+    setToSend(hostname)
     conn = listen_to('', port)
     while True:
         if conn == None:
@@ -85,8 +101,7 @@ def main():
 
     while 1: 
         try:
-            toSend = raw_input('>')
-            readline.clear_history()
+            setToSend(raw_input('>'))
             if toSend == ".logout": 
                 blank_current_readline()
                 print 'connection with ' + clientName + ' closed'

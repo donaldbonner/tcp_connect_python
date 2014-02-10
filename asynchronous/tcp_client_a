@@ -3,7 +3,7 @@ import signal, os, socket, time, sys, subprocess, readline, struct, fcntl, termi
 from multiprocessing import Process
 
 global toSend
-toSend = ""
+toSend = "Fail"
 
 """ http://docs.python.org/2.7/library/socket.html """
 """ returns socket s that is connected to port at ip_connect """
@@ -34,9 +34,14 @@ def threadPrint(sock, clientName, pid):
         if not data: 
             break
         blank_current_readline()
-        print clientName + ':' + data
-        sys.stdout.write('>' + readline.get_line_buffer())
-        sys.stdout.flush()          # Needed or text doesn't show until a key is pressed
+        if readline.get_line_buffer == toSend or readline.get_line_buffer() == toSend + '\n':
+            print clientName + ':' + data
+            sys.stdout.write('>')
+            sys.stdout.flush()
+        else:
+            print clientName + ':' + data
+            sys.stdout.write('>' + readline.get_line_buffer())
+            sys.stdout.flush()          # Needed or text doesn't show until a key is pressed
     os.kill(pid ,signal.SIGINT)
     sys.exit(0)
 
@@ -52,18 +57,23 @@ def blank_current_readline():
     sys.stdout.write('\x1b[1A\x1b[2K'*(text_len/cols))  # Move cursor up and clear line
     sys.stdout.write('\x1b[0G')                         # Move to start of line
 
+def setToSend(value):
+    global toSend
+    toSend = value
+
 def main():
     """ set up parameters needed """
     port = 9999
     hostname = raw_input("Enter a username : ")
     ip_connect = raw_input("Enter IP to connect to: ")
+    setToSend(ip_connect)
 
     """ make the connection on unused port"""
     s = connect_to(ip_connect, port)
     while True:
         if s is None:
             port =- 1
-            print 'port', port, 'busy, trying', port
+            print 'port', port+1, 'busy, trying', port
             s = connect_to(ip_connect, port)  
         else:
             break
@@ -78,10 +88,9 @@ def main():
     print 'Connected to', clientName
     print 'To exit chat, type', repr('.logout') 
 
-    toSend = None
     while 1:
         try:
-            toSend = raw_input('>')
+            setToSend(raw_input('>'))
             if toSend == ".logout": 
                 blank_current_readline()
                 print 'connection with ' + clientName + ' closed'
