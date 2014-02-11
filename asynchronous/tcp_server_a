@@ -5,7 +5,7 @@ from multiprocessing import Process
 global toSend
 toSend = "Fail"
 
-""" Get local inet_ip address """
+# Get local inet_ip address
 def getInetIP():
     try:
         socket.gethostbyname(socket.gethostname())
@@ -17,8 +17,8 @@ def getInetIP():
         sys.exit(1)
     return socket.gethostbyname(socket.gethostname())
 
-""" http://docs.python.org/2.7/library/socket.html """
-""" returns the connection socket and the address connected to (conn, addr) """
+# http://docs.python.org/2.7/library/socket.html
+# returns the connection socket and the address connected to (conn, addr)
 def listen_to(host, port):
     for res in socket.getaddrinfo(host, port, socket.AF_UNSPEC, socket.SOCK_STREAM, 0, socket.AI_PASSIVE):
         af, socktype, proto, canonname, sa = res
@@ -41,25 +41,23 @@ def listen_to(host, port):
     conn, addr = s.accept()
     return conn
 
-""" returns socket s that is connected to port at ip_connect """
+# returns socket s that is connected to port at ip_connect
 def threadPrint(sock, clientName, pid):
     while True:
         data = sock.recv(1024)
         if not data: 
             break
         blank_current_readline()
+        print clientName + ':' + data
         if readline.get_line_buffer == toSend or readline.get_line_buffer() == toSend + '\n':
-            print clientName + ':' + data
             sys.stdout.write('>')
-            sys.stdout.flush()
         else:
-            print clientName + ':' + data
             sys.stdout.write('>' + readline.get_line_buffer())
-            sys.stdout.flush()          # Needed or text doesn't show until a key is pressed
+        sys.stdout.flush()          # Needed or text doesn't show until a key is pressed
     os.kill(pid,signal.SIGINT)
     sys.exit(0)
 
-""" http://stackoverflow.com/questions/2082387/reading-input-from-raw-input-without-having-the-prompt-overwritten-by-other-th """
+# http://stackoverflow.com/questions/2082387/reading-input-from-raw-input-without-having-the-prompt-overwritten-by-other-th
 def blank_current_readline():
     # Next line said to be reasonably portable for various Unixes
     (rows,cols) = struct.unpack('hh', fcntl.ioctl(sys.stdout, termios.TIOCGWINSZ,'1234'))
@@ -71,14 +69,15 @@ def blank_current_readline():
     sys.stdout.write('\x1b[1A\x1b[2K'*(text_len/cols))  # Move cursor up and clear line
     sys.stdout.write('\x1b[0G')                         # Move to start of line
 
+# Modifier for global variable
 def setToSend(value):
     global toSend
     toSend = value
 
 def main():
     port = 9999
-    """ set up informatino and give host ip address """
-    """ make sure port isnt used """
+    # set up informatino and give host ip address
+    # make sure port isnt used
     print "This machines IP address is " + getInetIP()
     hostname = raw_input("Enter a username : ")
     setToSend(hostname)

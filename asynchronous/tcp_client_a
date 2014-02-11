@@ -5,8 +5,8 @@ from multiprocessing import Process
 global toSend
 toSend = "Fail"
 
-""" http://docs.python.org/2.7/library/socket.html """
-""" returns socket s that is connected to port at ip_connect """
+# http://docs.python.org/2.7/library/socket.html
+# returns socket s that is connected to port at ip_connect
 def connect_to(ip_connect, port):
     for res in socket.getaddrinfo(ip_connect, port, socket.AF_UNSPEC, socket.SOCK_STREAM):
         af, socktype, proto, canonname, sa = res
@@ -27,25 +27,23 @@ def connect_to(ip_connect, port):
         return None
     return s   
 
-""" returns the connection socket and the address connected to (conn, addr) """
+# returns the connection socket and the address connected to (conn, addr)
 def threadPrint(sock, clientName, pid):
     while True:
         data = sock.recv(1024)
         if not data: 
             break
         blank_current_readline()
+        print clientName + ':' + data
         if readline.get_line_buffer == toSend or readline.get_line_buffer() == toSend + '\n':
-            print clientName + ':' + data
             sys.stdout.write('>')
-            sys.stdout.flush()
         else:
-            print clientName + ':' + data
             sys.stdout.write('>' + readline.get_line_buffer())
-            sys.stdout.flush()          # Needed or text doesn't show until a key is pressed
+        sys.stdout.flush()          # Needed or text doesn't show until a key is pressed
     os.kill(pid ,signal.SIGINT)
     sys.exit(0)
 
-""" http://stackoverflow.com/questions/2082387/reading-input-from-raw-input-without-having-the-prompt-overwritten-by-other-th """
+# http://stackoverflow.com/questions/2082387/reading-input-from-raw-input-without-having-the-prompt-overwritten-by-other-th
 def blank_current_readline():
     # Next line said to be reasonably portable for various Unixes
     (rows,cols) = struct.unpack('hh', fcntl.ioctl(sys.stdout, termios.TIOCGWINSZ,'1234'))
@@ -57,18 +55,19 @@ def blank_current_readline():
     sys.stdout.write('\x1b[1A\x1b[2K'*(text_len/cols))  # Move cursor up and clear line
     sys.stdout.write('\x1b[0G')                         # Move to start of line
 
+# Modifier for global variable 
 def setToSend(value):
     global toSend
     toSend = value
 
 def main():
-    """ set up parameters needed """
+    # set up parameters needed
     port = 9999
     hostname = raw_input("Enter a username : ")
     ip_connect = raw_input("Enter IP to connect to: ")
     setToSend(ip_connect)
 
-    """ make the connection on unused port"""
+    # make the connection on unused port
     s = connect_to(ip_connect, port)
     while True:
         if s is None:
