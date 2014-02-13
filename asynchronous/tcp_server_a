@@ -41,7 +41,10 @@ def listen_to(host, port):
     conn, addr = s.accept()
     return conn
 
-# returns socket s that is connected to port at ip_connect
+# Thread waits for incoming message to print
+# Byte strings to create color output
+# Black : \033[22;30m
+# Red : \033[22;31m
 def threadPrint(sock, clientName, pid):
     while True:
         data = sock.recv(1024)
