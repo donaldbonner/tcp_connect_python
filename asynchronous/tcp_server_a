@@ -48,7 +48,7 @@ def threadPrint(sock, clientName, pid):
         if not data: 
             break
         blank_current_readline()
-        print clientName + ':' + data
+        print "\033[22;31m" + clientName + ':' + data + "\033[22;30m"
         if readline.get_line_buffer == toSend or readline.get_line_buffer() == toSend + '\n':
             sys.stdout.write('>')
         else:
