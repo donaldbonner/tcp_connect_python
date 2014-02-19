@@ -5,6 +5,18 @@ from multiprocessing import Process
 global toSend
 toSend = "Fail"
 
+# Check if internet connection established
+# Dependencies: import socket, sys
+def isOnline():
+    try:
+        socket.gethostbyname(socket.gethostname())
+    except socket.error as msg:
+        print "Not connected to the interwebs"
+        sys.exit(1)
+    if socket.gethostbyname(socket.gethostname()) == '127.0.0.1':
+        print "Not connected to the interwebs"
+        sys.exit(1)
+
 # http://docs.python.org/2.7/library/socket.html
 # returns socket s that is connected to port at ip_connect
 def connect_to(ip_connect, port):
@@ -64,6 +76,8 @@ def setToSend(value):
     toSend = value
 
 def main():
+    # Check if online
+    isOnline()
     # set up parameters needed
     port = 9999
     hostname = raw_input("Enter a username : ")
@@ -90,7 +104,7 @@ def main():
     print 'Connected to', clientName
     print 'To exit chat, type', repr('.logout') 
 
-    while 1:
+    while True:
         try:
             setToSend(raw_input('>'))
             if toSend == ".logout": 

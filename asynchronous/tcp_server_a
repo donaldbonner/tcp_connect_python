@@ -95,13 +95,14 @@ def main():
 
     clientName = conn.recv(1024)
     subprocess.call(["clear"])
+
     print 'Connected to', clientName
     print 'To exit chat, type', repr('.logout') 
-    conn.send(hostname) 
+    conn.send(hostname)
 
     thread.start_new_thread(threadPrint, (conn, clientName, os.getpid(), ))
 
-    while 1: 
+    while True: 
         try:
             setToSend(raw_input('>'))
             if toSend == ".logout": 
